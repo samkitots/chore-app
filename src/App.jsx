@@ -5,6 +5,7 @@ import AuthForm from './components/AuthForm';
 import Dashboard from './components/Dashboard';
 import Navigation from './components/Navigation';
 import ErrorBoundary from './components/ErrorBoundary';
+import AddNewChore from './components/AddNewChore'; // Import the new component
 
 function App() {
   return (
@@ -30,6 +31,9 @@ function AuthenticatedApp() {
         {/* Main dashboard route for all logged-in users */}
         <Route path="/dashboard" element={currentUser ? <Dashboard /> : <Navigate to="/login" />} />
         
+        {/* Route for adding a new chore, only accessible by admins */}
+        <Route path="/add-chore" element={currentUser && currentUser.role === 'admin' ? <AddNewChore /> : <Navigate to="/dashboard" />} />
+
         {/* Admin-specific route, redirects to the main dashboard if not an admin */}
         <Route 
           path="/admin" 

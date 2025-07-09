@@ -63,7 +63,7 @@ function Dashboard() {
   ) : (
     <MemberDashboard
       currentUser={currentUser}
-      masterChores={masterChores}
+      masterChoores={masterChores}
       familyMembers={familyMembers}
       chores={chores} // Pass chores down
     />
