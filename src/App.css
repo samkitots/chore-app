@@ -1,0 +1,147 @@
+/* General App Layout */
+body {
+  font-family: 'Plus Jakarta Sans', 'Noto Sans', sans-serif;
+  background-color: #f8fcfa;
+  color: #0e1b17;
+}
+
+.dashboard {
+  padding: 2rem;
+}
+
+/* Navigation */
+.navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navigation-brand a {
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-decoration: none;
+  color: #0e1b17;
+}
+
+.navigation-links ul {
+  display: flex;
+  gap: 1.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navigation-links a {
+  text-decoration: none;
+  color: #4e977f;
+  font-weight: 500;
+}
+
+.navigation-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logout-button {
+  background-color: #47eab4;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+/* Chore Lists */
+.chore-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.chore-item {
+  background-color: #ffffff;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.chore-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+}
+
+.due-status {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  color: white;
+}
+
+.due-status.due-today { background-color: #f59e0b; }
+.due-status.overdue { background-color: #ef4444; }
+
+/* Admin and Stats Lists */
+.admin-chore-table,
+.pending-approval-section ul,
+.unassigned-chores-section ul,
+.family-stats ul {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.admin-chore-table th, .admin-chore-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e7f3ef;
+}
+
+.admin-table-header {
+  background-color: #e7f3ef;
+}
+
+/* Forms */
+form {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+form div {
+  margin-bottom: 1rem;
+}
+
+form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+form input[type="text"],
+form input[type="email"],
+form input[type="password"],
+form input[type="date"],
+form select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e7f3ef;
+  border-radius: 0.5rem;
+  background-color: #f8fcfa;
+}
+
+form button {
+  background-color: #47eab4;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: bold;
+}
