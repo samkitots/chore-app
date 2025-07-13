@@ -1,44 +1,54 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, sendPasswordResetEmail } from "firebase/auth";
-import { getFirestore, doc, setDoc } from "firebase/firestore";
-import { AuthContext } from './AuthContext'; // Assuming AuthContext provides currentUser
+import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { useAuth } from './AuthContext';
 
 const AddFamilyMember = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('Member'); // Default role
+  const [role, setRole] = useState('Member');
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
   const auth = getAuth();
   const db = getFirestore();
-  const { currentUser } = useContext(AuthContext); // Get current user from context
+  const { currentUser } = useAuth();
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!currentUser?.familyId) {
+        setError("Could not determine your family ID. Please try again.");
+        return;
+    }
     setLoading(true);
     setError('');
+    setMessage('');
 
     try {
-      // 1. Create user in Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(auth, email, 'temporaryP@ssword123');
-      const user = userCredential.user;
-
-      // 2. Send a password reset email
-      await sendPasswordResetEmail(auth, email);
-
-      // 3. Save user information in Firestore
-      await setDoc(doc(db, "familyMembers", user.uid), {
+      // 1. Add a document to Firestore in the 'familyMembers' collection
+      await addDoc(collection(db, "familyMembers"), {
         name: name,
         email: email,
         role: role,
-        userId: user.uid
+        familyId: currentUser.familyId, // Associate with the current user's family
+        // userId will be added later when the user signs up
       });
 
-      // 4. Navigate back to the parent dashboard
-      navigate('/parent-dashboard');
+      // 2. Send an invitation email (which works like a password reset for new users)
+      await sendPasswordResetEmail(auth, email);
+
+      setMessage(`An invitation has been sent to ${email}.`);
+      // Optionally, clear the form
+      setName('');
+      setEmail('');
+      setRole('Member');
+      
+      // Navigate back after a delay
+      setTimeout(() => navigate('/parent-dashboard'), 3000);
+
     } catch (error) {
       console.error('Error adding family member:', error);
       setError('Failed to add family member. Please try again.');
@@ -54,7 +64,8 @@ const AddFamilyMember = () => {
   return (
     <div className="container mx-auto p-4">
       <h2 className="text-2xl font-bold mb-4">Add New Family Member</h2>
-      {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
+      {error && <p className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">{error}</p>}
+      {message && <p className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">{message}</p>}
       <form onSubmit={handleSave} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
@@ -107,7 +118,7 @@ const AddFamilyMember = () => {
             type="submit"
             disabled={loading}
           >
-            {loading ? 'Saving...' : 'Save'}
+            {loading ? 'Sending Invitation...' : 'Save & Send Invitation'}
           </button>
           <button
             className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
