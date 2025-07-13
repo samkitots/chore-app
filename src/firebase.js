@@ -11,7 +11,8 @@ import {
   Timestamp,
   onSnapshot,
   query,
-  where,
+  where, 
+ deleteDoc,
   updateDoc  // <-- Added
 } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
@@ -94,4 +95,4 @@ const signInWithEmail = async (email, password) => {
   return await signInWithEmailAndPassword(auth, email, password);
 };
 
-export { db, auth, analytics, signInWithEmail, signUpWithEmail, getUserProfile, Timestamp, serverTimestamp, collection, doc, getDocs, onSnapshot, query, where, updateDoc, addDoc };
+export { db, auth, analytics, signInWithEmail, signUpWithEmail, getUserProfile, Timestamp, serverTimestamp, collection, doc, getDocs, onSnapshot, query, where, updateDoc, addDoc, deleteDoc };

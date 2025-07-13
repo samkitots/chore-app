@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db, collection, onSnapshot, query, where, doc, updateDoc, addDoc, deleteDoc } from '../firebase';
+import { getFirestore, collection, onSnapshot, query, where, doc, updateDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 import ChoreRow from './ChoreRow';
 
@@ -9,13 +9,18 @@ const ChoreManagementList = () => {
     const [chores, setChores] = useState([]);
     const [familyMembers, setFamilyMembers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const db = getFirestore();
 
     useEffect(() => {
-        if (!currentUser?.familyId) return;
+        if (!currentUser?.familyId) {
+            setLoading(false);
+            return;
+        }
 
         const masterChoresQuery = query(collection(db, 'masterChores'), where('familyId', '==', currentUser.familyId));
         const unsubscribeMasterChores = onSnapshot(masterChoresQuery, snapshot => {
             setMasterChores(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            setLoading(false);
         });
 
         const choresQuery = query(collection(db, 'chores'), where('familyId', '==', currentUser.familyId));
@@ -28,42 +33,34 @@ const ChoreManagementList = () => {
             setFamilyMembers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         });
 
-        setLoading(false);
-
         return () => {
             unsubscribeMasterChores();
             unsubscribeChores();
             unsubscribeFamilyMembers();
         };
-    }, [currentUser.familyId]);
+    }, [currentUser?.familyId, db]);
 
-    const handleSave = async (masterChore, assignedTo, dueDate, status) => {
+    const handleSave = async (masterChore, assigneeId, dueDate, status) => {
         const existingChore = chores.find(c => c.masterChoreId === masterChore.id);
 
         if (status === 'assigned') {
+            const data = {
+                assigneeId,
+                dueDate,
+                status: 'assigned',
+                masterChoreId: masterChore.id,
+                familyId: currentUser.familyId,
+                lastUpdated: serverTimestamp()
+            };
+
             if (existingChore) {
-                // Update existing chore
                 const choreRef = doc(db, 'chores', existingChore.id);
-                await updateDoc(choreRef, {
-                    assignedTo: assignedTo,
-                    dueDate: dueDate,
-                    status: 'assigned',
-                });
+                await updateDoc(choreRef, data);
             } else {
-                // Create new chore
-                await addDoc(collection(db, 'chores'), {
-                    masterChoreId: masterChore.id,
-                    familyId: currentUser.familyId,
-                    assignedTo: assignedTo,
-                    dueDate: dueDate,
-                    status: 'assigned',
-                    isCompleted: false,
-                    pendingApproval: false,
-                });
+                await addDoc(collection(db, 'chores'), { ...data, createdAt: serverTimestamp() });
             }
         } else { // Unassigned
             if (existingChore) {
-                // Delete existing chore
                 const choreRef = doc(db, 'chores', existingChore.id);
                 await deleteDoc(choreRef);
             }
@@ -75,19 +72,17 @@ const ChoreManagementList = () => {
     }
 
     return (
-        <div className="overflow-x-auto">
-            <h2 className="text-xl font-semibold my-4">Chore Management</h2>
-            <table className="min-w-full bg-white">
-                <thead className="bg-gray-200">
-                    <tr>
-                        <th className="w-1/4 py-2 px-4 text-left">Chore</th>
-                        <th className="w-1/4 py-2 px-4 text-left">Status</th>
-                        <th className="w-1/4 py-2 px-4 text-left">Assigned To</th>
-                        <th className="w-1/4 py-2 px-4 text-left">Due Date</th>
-                        <th className="w-1/6 py-2 px-4 text-center">Edit</th>
-                    </tr>
-                </thead>
-                <tbody>
+        <div className="overflow-x-auto bg-white shadow-md rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Chore Management</h2>
+            <div className="min-w-full">
+                <div className="grid grid-cols-5 gap-4 bg-gray-200 p-4 rounded-t-lg font-bold">
+                    <div>Chore</div>
+                    <div>Status</div>
+                    <div>Assigned To</div>
+                    <div>Due Date</div>
+                    <div className="text-center">Edit</div>
+                </div>
+                <div className="divide-y divide-gray-200">
                     {masterChores.map(masterChore => {
                         const assignedChore = chores.find(c => c.masterChoreId === masterChore.id);
                         return (
@@ -100,8 +95,8 @@ const ChoreManagementList = () => {
                             />
                         );
                     })}
-                </tbody>
-            </table>
+                </div>
+            </div>
         </div>
     );
 };

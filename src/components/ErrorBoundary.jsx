@@ -1,11 +1,11 @@
 import React from 'react';
-import { analytics } from '../firebase'; // Import the analytics instance from your firebase.js
-import { logEvent } from 'firebase/analytics';
+import { logEvent } from "firebase/analytics";
+import { analytics } from '../firebase';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
   static getDerivedStateFromError(error) {
@@ -14,21 +14,35 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log the error to the console for development
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
-
-    // Log a custom event to Google Analytics
-    logEvent(analytics, 'exception', {
-      description: error.toString(),
-      fatal: true, // Mark this as a fatal error
-      component_stack: errorInfo.componentStack,
+    // You can also log the error to an error reporting service
+    this.setState({
+      error: error,
+      errorInfo: errorInfo
     });
+    
+    // Log to Firebase Analytics
+    if (analytics) {
+        logEvent(analytics, 'exception', {
+            description: error.toString(),
+            fatal: true
+        });
+    }
   }
 
   render() {
     if (this.state.hasError) {
       // You can render any custom fallback UI
-      return <h1>Something went wrong. Please refresh the page.</h1>;
+      return (
+        <div className="container mx-auto p-4 text-center">
+            <h1 className="text-2xl font-bold text-red-600 mb-4">Oops! Something went wrong.</h1>
+            <p className="mb-4">We've been notified of the issue. Please try refreshing the page, or check back later.</p>
+            <details style={{ whiteSpace: 'pre-wrap' }}>
+                {this.state.error && this.state.error.toString()}
+                <br />
+                {this.state.errorInfo?.componentStack}
+            </details>
+        </div>
+      );
     }
 
     return this.props.children;

@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { auth } from '../firebase';
-import { signOut } from 'firebase/auth';
+import { getAuth, signOut } from 'firebase/auth';
 
 function Navigation() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
+    const auth = getAuth();
     try {
       await signOut(auth);
       navigate('/login');
@@ -17,30 +17,42 @@ function Navigation() {
     }
   };
 
+  // Assuming 'Parent' is the admin role
+  const isAdmin = currentUser?.role === 'Parent';
+
   return (
-    <nav className="navigation">
-      <div className="navigation-brand">
-        <Link to={currentUser ? "/dashboard" : "/login"}>ChoreRotator</Link>
-      </div>
-      <div className="navigation-links">
-        {currentUser && (
-          <ul>
-            <li><Link to="/dashboard">Dashboard</Link></li>
-            {currentUser.role === 'admin' && (
-              <li><Link to="/admin">Admin</Link></li>
+    <nav className="bg-white shadow-md">
+      <div className="container mx-auto px-6 py-3 flex justify-between items-center">
+        <Link to={currentUser ? "/dashboard" : "/login"} className="text-xl font-bold text-gray-800">
+          ChoreRotator
+        </Link>
+        <div className="flex items-center">
+          {currentUser && (
+            <div className="flex items-center space-x-4">
+              <Link to="/dashboard" className="text-gray-600 hover:text-gray-800">Dashboard</Link>
+              {isAdmin && (
+                <Link to="/add-chore" className="text-gray-600 hover:text-gray-800">Add Chore</Link>
+              )}
+               {isAdmin && (
+                <Link to="/add-family-member" className="text-gray-600 hover:text-gray-800">Add Family Member</Link>
+              )}
+            </div>
+          )}
+          <div className="ml-6">
+            {currentUser ? (
+              <div className="flex items-center">
+                <span className="text-gray-700 mr-4">Hello, {currentUser.name || currentUser.email}</span>
+                <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <Link to="/login" className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                Login
+              </Link>
             )}
-          </ul>
-        )}
-      </div>
-      <div className="navigation-user">
-        {currentUser ? (
-          <>
-            <span className="user-greeting">Hello, {currentUser.name || currentUser.email}</span>
-            <button onClick={handleLogout} className="logout-button">Logout</button>
-          </>
-        ) : (
-          <Link to="/login">Login</Link>
-        )}
+          </div>
+        </div>
       </div>
     </nav>
   );

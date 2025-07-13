@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, getUserProfile } from '../firebase'; // Correctly import getUserProfile
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 
 const AuthContext = createContext();
 
@@ -15,9 +16,15 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // When a user is logged in, fetch their full profile
-        const userProfile = await getUserProfile(user.uid);
-        setCurrentUser({ ...user, ...userProfile }); // Combine auth user and profile data
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          setCurrentUser({ ...user, ...userData });
+        } else {
+          // Handle case where user exists in Auth but not in Firestore
+          setCurrentUser(user);
+        }
       } else {
         setCurrentUser(null);
       }

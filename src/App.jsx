@@ -7,6 +7,7 @@ import Navigation from './components/Navigation';
 import ErrorBoundary from './components/ErrorBoundary';
 import AddNewChore from './components/AddNewChore'; // Import the new component
 
+import AddFamilyMember from '/src/components/AddFamilyMember';
 function App() {
   return (
     <AuthProvider>
@@ -40,6 +41,9 @@ function AuthenticatedApp() {
           element={currentUser && currentUser.role === 'admin' ? <Dashboard /> : <Navigate to="/dashboard" />} 
         />
         
+        {/* Route for adding a new family member, only accessible by admins */}
+        <Route path="/add-family-member" element={currentUser && currentUser.role === 'admin' ? <AddFamilyMember /> : <Navigate to="/dashboard" />} />
+
         {/* Default route redirects to the dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>

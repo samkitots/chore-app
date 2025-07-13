@@ -2,25 +2,28 @@ import React from 'react';
 
 function FamilyStatsList({ chores, familyMembers }) {
   const familyMemberStats = familyMembers.map(member => {
-    const completedCount = chores.filter(chore => chore.assigneeId === member.id && chore.status === 'completed').length;
+    const choresCompleted = chores.filter(chore => chore.assigneeId === member.id && chore.status === 'completed').length;
     return {
       id: member.id,
       name: member.name,
-      completedCount,
+      completedCount: choresCompleted,
     };
   });
 
   return (
-    <div className="family-stats"> {/* FIX: Changed className to match App.css */}
-      <h3>Family Stats</h3>
+    <div className="bg-white shadow-md rounded-lg p-6">
+      <h3 className="text-xl font-bold mb-4">Family Stats</h3>
       {familyMemberStats.length === 0 ? (
-        <p>No family members or completed chores found.</p>
+        <p className="text-gray-500">No stats to display.</p>
       ) : (
-        <ul>
-          {familyMemberStats.map(memberStats => (
-            <li key={memberStats.id}>
-              {memberStats.name}: {memberStats.completedCount} chores completed
-            </li>
+        <ul className="space-y-4">
+          {familyMemberStats
+            .sort((a, b) => b.completedCount - a.completedCount) // Sort by most chores completed
+            .map(memberStats => (
+              <li key={memberStats.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                <span className="font-medium text-gray-800">{memberStats.name}</span>
+                <span className="font-semibold text-lg text-green-600">{memberStats.completedCount}</span>
+              </li>
           ))}
         </ul>
       )}

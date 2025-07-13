@@ -1,48 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { db, collection, onSnapshot, query, where } from '../firebase';
+import { getFirestore, collection, onSnapshot, query, where } from 'firebase/firestore';
 import ParentDashboard from './ParentDashboard';
 import MemberDashboard from './MemberDashboard';
 
 function Dashboard() {
   const { currentUser } = useAuth();
-  const [masterChores, setMasterChores] = useState([]);
-  const [familyMembers, setFamilyMembers] = useState([]);
-  const [chores, setChores] = useState([]); // State for all chores
+  const [dashboardData, setDashboardData] = useState({
+    masterChores: [],
+    familyMembers: [],
+    chores: [],
+  });
   const [loading, setLoading] = useState(true);
+  const db = getFirestore();
 
   useEffect(() => {
-    if (!currentUser || !currentUser.familyId) {
+    if (!currentUser?.familyId) {
       setLoading(false);
       return;
     }
 
-    // Listener for Master Chores
-    const masterChoresQuery = collection(db, 'masterChores');
-    const unsubscribeMasterChores = onSnapshot(masterChoresQuery, (snapshot) => {
-      setMasterChores(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-
-    // Listener for Family Members
-    const familyMembersQuery = query(collection(db, 'familyMembers'), where('familyId', '==', currentUser.familyId));
-    const unsubscribeFamilyMembers = onSnapshot(familyMembersQuery, (snapshot) => {
-      setFamilyMembers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-
-    // Listener for All Chores in the family
-    const choresQuery = query(collection(db, 'chores'), where('familyId', '==', currentUser.familyId));
-    const unsubscribeChores = onSnapshot(choresQuery, (snapshot) => {
-      setChores(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false); // Set loading to false after all data is fetched
-    });
-
-    // Cleanup function to unsubscribe from all listeners on component unmount
-    return () => {
-      unsubscribeMasterChores();
-      unsubscribeFamilyMembers();
-      unsubscribeChores();
+    const queries = {
+      masterChores: query(collection(db, 'masterChores'), where('familyId', '==', currentUser.familyId)),
+      familyMembers: query(collection(db, 'familyMembers'), where('familyId', '==', currentUser.familyId)),
+      chores: query(collection(db, 'chores'), where('familyId', '==', currentUser.familyId)),
     };
-  }, [currentUser]);
+
+    const unsubscribes = Object.entries(queries).map(([key, q]) => 
+      onSnapshot(q, (snapshot) => {
+        setDashboardData(prevData => ({
+          ...prevData,
+          [key]: snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+        }));
+      })
+    );
+    
+    // A simple way to check for initial data load.
+    // This could be improved with Promise.all if we were fetching once,
+    // but with listeners, we'll just wait for the first batch.
+    const loadingTimeout = setTimeout(() => setLoading(false), 2000); // Failsafe timeout
+
+    const initialLoadCheck = () => {
+        if(dashboardData.masterChores.length > 0 && dashboardData.familyMembers.length > 0) {
+            setLoading(false);
+        }
+    }
+    // This is a simplified check. A more robust solution might be needed
+    // depending on specific app requirements, e.g., waiting for all listeners to fire at least once.
+    initialLoadCheck();
+
+
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+      clearTimeout(loadingTimeout);
+    };
+  }, [currentUser, db]);
 
   if (loading) {
     return <div>Loading dashboard...</div>;
@@ -51,22 +63,14 @@ function Dashboard() {
   if (!currentUser) {
     return <div>Please log in.</div>;
   }
+  
+  // Assuming 'Parent' is a role that has admin-like privileges
+  const isAdmin = currentUser.role === 'Parent' || currentUser.role === 'admin';
 
-  // Pass all necessary data down to the specific dashboards
-  return currentUser.role === 'admin' ? (
-    <ParentDashboard
-      currentUser={currentUser}
-      masterChores={masterChores}
-      familyMembers={familyMembers}
-      chores={chores} // Pass chores down
-    />
+  return isAdmin ? (
+    <ParentDashboard {...dashboardData} />
   ) : (
-    <MemberDashboard
-      currentUser={currentUser}
-      masterChoores={masterChores}
-      familyMembers={familyMembers}
-      chores={chores} // Pass chores down
-    />
+    <MemberDashboard {...dashboardData} user={currentUser} />
   );
 }
 

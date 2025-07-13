@@ -1,12 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { FaPencilAlt, FaCheck, FaTimes } from 'react-icons/fa';
-import { format, differenceInCalendarDays, addDays } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 
 const ChoreRow = ({ masterChore, assignedChore, familyMembers, onSave }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [status, setStatus] = useState(assignedChore ? 'assigned' : 'unassigned');
-    const [assignedTo, setAssignedTo] = useState(assignedChore?.assignedTo || 'Not Assigned');
-    const [dueDate, setDueDate] = useState(assignedChore?.dueDate?.toDate() || addDays(new Date(), 7));
+    const [choreData, setChoreData] = useState({
+        status: 'unassigned',
+        assigneeId: 'Not Assigned',
+        dueDate: new Date()
+    });
+
+    useEffect(() => {
+        if (assignedChore) {
+            setChoreData({
+                status: assignedChore.status || 'unassigned',
+                assigneeId: assignedChore.assigneeId || 'Not Assigned',
+                dueDate: assignedChore.dueDate?.toDate() || new Date()
+            });
+        } else {
+            // Reset to default if chore is un-assigned
+            setChoreData({
+                status: 'unassigned',
+                assigneeId: 'Not Assigned',
+                dueDate: new Date()
+            });
+        }
+    }, [assignedChore]);
 
     const getFamilyMemberName = (memberId) => {
         if (!memberId || memberId === 'Not Assigned') return 'Not Assigned';
@@ -14,92 +33,85 @@ const ChoreRow = ({ masterChore, assignedChore, familyMembers, onSave }) => {
         return member ? member.name : 'Unknown';
     };
 
-    const formatDueDate = (date) => {
-        if (!date) return 'N/A';
-        const today = new Date();
-        const diff = differenceInCalendarDays(date, today);
-        if (diff === 0) return 'Today';
-        if (diff === 1) return 'Tomorrow';
-        if (diff === -1) return 'Yesterday';
-        if (diff < -1) return `${Math.abs(diff)} days overdue`;
-        return `In ${diff} days`;
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setChoreData(prev => ({ ...prev, [name]: value }));
     };
-
-    const handleEdit = () => {
-        setIsEditing(true);
-    };
-
-    const handleCancel = () => {
-        setIsEditing(false);
-        // Reset state to original
-        setStatus(assignedChore ? 'assigned' : 'unassigned');
-        setAssignedTo(assignedChore?.assignedTo || 'Not Assigned');
-        setDueDate(assignedChore?.dueDate?.toDate() || addDays(new Date(), 7));
+    
+    const handleDateChange = (e) => {
+        const date = parseISO(e.target.value);
+        if(isValid(date)) {
+            setChoreData(prev => ({ ...prev, dueDate: date }));
+        }
     };
 
     const handleSave = () => {
-        onSave(masterChore, assignedTo, dueDate, status);
+        onSave(masterChore, choreData.assigneeId, choreData.dueDate, choreData.status);
         setIsEditing(false);
     };
 
-    useEffect(() => {
-        if (status === 'unassigned') {
-            setAssignedTo('Not Assigned');
-        } else if (status === 'assigned' && assignedTo === 'Not Assigned') {
-            setAssignedTo(familyMembers[0]?.id || '');
+    const handleCancel = () => {
+        // Revert changes from assignedChore prop
+        if (assignedChore) {
+            setChoreData({
+                status: assignedChore.status || 'unassigned',
+                assigneeId: assignedChore.assigneeId || 'Not Assigned',
+                dueDate: assignedChore.dueDate?.toDate() || new Date()
+            });
+        } else {
+             setChoreData({
+                status: 'unassigned',
+                assigneeId: 'Not Assigned',
+                dueDate: new Date()
+            });
         }
-    }, [status, familyMembers]);
-
+        setIsEditing(false);
+    };
+    
     return (
-        <tr className="border-b">
-            <td className="py-2 px-4">{masterChore.name}</td>
-            <td className="py-2 px-4">
+        <div className="grid grid-cols-5 gap-4 items-center p-4">
+            <div>{masterChore.name}</div>
+            <div>
                 {isEditing ? (
-                    <select value={status} onChange={(e) => setStatus(e.target.value)} className="p-1 border rounded">
+                    <select name="status" value={choreData.status} onChange={handleInputChange} className="p-1 border rounded w-full">
                         <option value="assigned">Assigned</option>
                         <option value="unassigned">Unassigned</option>
                     </select>
                 ) : (
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${status === 'assigned' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {status === 'assigned' ? 'Assigned' : 'Unassigned'}
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${choreData.status === 'assigned' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {choreData.status}
                     </span>
                 )}
-            </td>
-            <td className="py-2 px-4">
-                {isEditing && status === 'assigned' ? (
-                    <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className="p-1 border rounded">
+            </div>
+            <div>
+                {isEditing && choreData.status === 'assigned' ? (
+                    <select name="assigneeId" value={choreData.assigneeId} onChange={handleInputChange} className="p-1 border rounded w-full">
                         {familyMembers.map(member => (
                             <option key={member.id} value={member.id}>{member.name}</option>
                         ))}
                     </select>
                 ) : (
-                    getFamilyMemberName(assignedTo)
+                    getFamilyMemberName(choreData.assigneeId)
                 )}
-            </td>
-            <td className="py-2 px-4">
+            </div>
+            <div>
                 {isEditing ? (
-                    <input type="date" value={format(dueDate, 'yyyy-MM-dd')} onChange={(e) => setDueDate(new Date(e.target.value))} className="p-1 border rounded" />
+                    <input type="date" value={format(choreData.dueDate, 'yyyy-MM-dd')} onChange={handleDateChange} className="p-1 border rounded w-full" />
                 ) : (
-                    formatDueDate(assignedChore?.dueDate?.toDate())
+                    isValid(choreData.dueDate) ? format(choreData.dueDate, 'PPP') : 'N/A'
                 )}
-            </td>
-            <td className="py-2 px-4 text-center">
+            </div>
+            <div className="flex justify-center items-center space-x-2">
                 {isEditing ? (
-                    <div className="flex justify-center items-center space-x-2">
-                        <button onClick={handleSave} className="text-green-500 hover:text-green-700">
-                            <FaCheck />
-                        </button>
-                        <button onClick={handleCancel} className="text-red-500 hover:text-red-700">
-                            <FaTimes />
-                        </button>
-                    </div>
+                    <>
+                        <button onClick={handleSave} className="text-green-500 hover:text-green-700"><FaCheck /></button>
+                        <button onClick={handleCancel} className="text-red-500 hover:text-red-700"><FaTimes /></button>
+                    </>
                 ) : (
-                    <button onClick={handleEdit} className="text-gray-500 hover:text-gray-700">
-                        <FaPencilAlt />
-                    </button>
+                    <button onClick={() => setIsEditing(true)} className="text-gray-500 hover:text-gray-700"><FaPencilAlt /></button>
                 )}
-            </td>
-        </tr>
+            </div>
+        </div>
     );
 };
 
